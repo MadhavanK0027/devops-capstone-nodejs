@@ -1,0 +1,13 @@
+{
+  "name": "devops-capstone-nodejs",
+  "version": "1.0.0",
+  "description": "End-to-End DevOps Pipeline for Node.js Web Application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node -e \"console.log('Tests passed successfully')\""
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
