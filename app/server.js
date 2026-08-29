@@ -8,11 +8,11 @@ app.get("/", (req, res) => {
     res.send(`
         <html>
         <head>
-            <title>DevOps Capstone</title>
+            <title>DevOps EMC Capstone</title>
         </head>
         <body>
-            <h1>DevOps Capstone Project</h1>
-            <h2>Node.js Application is Running Successfully!</h2>
+            <h1>DevOps EMC Capstone Project</h1>
+            <h2>Node.js EMC Capstone Application is Running Successfully!</h2>
             <p>GitHub → Jenkins → Docker → AWS EC2</p>
         </body>
         </html>
