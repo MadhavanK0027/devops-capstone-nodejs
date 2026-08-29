@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'maddy0027/devops-node-app'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE = 'maddy0027/devops-node-app'
+        APP_SERVER = 'ubuntu@44.197.131.111'
+        SSH_KEY = '/var/lib/jenkins/.ssh/Capstone_EMC.pem'
     }
 
     stages {
@@ -16,19 +17,27 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'cd app && npm install'
+                sh '''
+                    cd app
+                    npm install
+                '''
             }
         }
 
         stage('Test') {
             steps {
-                sh 'cd app && npm test'
+                sh '''
+                    cd app
+                    npm test
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                sh '''
+                    docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                '''
             }
         }
 
@@ -37,16 +46,56 @@ pipeline {
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub-credentials',
-                        usernameVariable: 'DOCKER_USER',
+                        usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push $IMAGE_NAME:$IMAGE_TAG
+                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
                     '''
                 }
             }
+        }
+
+        stage('Deploy to App Server') {
+            steps {
+                sh '''
+                    ssh -i ${SSH_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        ${APP_SERVER} "
+                            docker pull ${DOCKER_IMAGE}:${BUILD_NUMBER} &&
+                            docker stop devops-node-app || true &&
+                            docker rm devops-node-app || true &&
+                            docker run -d \
+                                --name devops-node-app \
+                                -p 3000:3000 \
+                                --restart unless-stopped \
+                                ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        "
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    ssh -i ${SSH_KEY} \
+                        -o StrictHostKeyChecking=no \
+                        ${APP_SERVER} \
+                        "docker ps --filter name=devops-node-app"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'CI/CD Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
